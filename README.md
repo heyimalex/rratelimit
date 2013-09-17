@@ -78,7 +78,7 @@ Internally rratelimit has a couple of different Limiter classes. The default (an
 
 The ListBasedLimiter works by LPUSHing a timestamp onto a list every time insert is called. It checks the limit by calling `LRANGE 0, {limit}` and iterating through the returned table until it either reaches the end of the table, reaches `limit` total iterations, or reaches a value below a cut off point defined as `current_timestamp - period`. If the total number of timestamps it finds is greater than or equal to `limit`, check returns true. Check also LTRIMs all items past the item that it completes on, ensuring that after a check the list is at most `limit` keys long. Expiration is handled by setting a ttl equal to `period` on insert.
 
-If you solely use insert_if_under on a ListBasedLimiter you're guaranteed to do no more than `2*limit` operations per run, which makes it constant time. If you use check and insert separately, the bound is O(N) but the average case will be constant time. The thing to remember is that insert time, check time, and memory usage scales with `limit`.
+If you solely use insert_if_under on a ListBasedLimiter you're guaranteed to do no more than `limit` operations per run, which makes it constant time. If you use check and insert separately, the bound is O(N) but the average case will be constant time. The thing to remember is that insert time, check time, and memory usage scales with `limit`.
 
 **Note**: There is an edge case where ListBasedLimiters can use a large amount of memory; if you continually insert before the key expires without ever calling check, the list will never be trimmed. This trade off is made to maintain O(1) insert time.
 
