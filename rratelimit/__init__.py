@@ -1,5 +1,4 @@
-from .hashbased import HashBasedLimiter
-from .listbased import ListBasedLimiter
-from .simple import SimpleLimiter
+from .limiters import ListLimiter, HashLimiter, SimpleLimiter
+Limiter = ListLimiter
 
-Limiter = ListBasedLimiter
+__all__ = [Limiter, ListLimiter, HashLimiter, SimpleLimiter]

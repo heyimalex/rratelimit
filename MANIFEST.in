@@ -1,4 +1,3 @@
 include README.md
 recursive-include rratelimit *.lua
 recursive-include tests *.py
-recursive-include benchmark *.py

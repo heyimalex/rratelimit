@@ -1,37 +1,57 @@
-import math
-import time
 import os
 
-class BaseLimiter(object):
-    """Helper class, used to standardize key_prefix across Limiters"""
-    @property
-    def action(self):
-        return self._action
+from .exceptions import UnsupportedRedisVersion
 
-    @action.setter
-    def action(self, value):
-        self._action = value
-        self.key_prefix = 'rratelimit:{}:'.format(value)
+basepath = os.path.abspath(os.path.dirname(__file__))
 
-    def check(self, *args, **kwargs):
-        raise NotImplementedError
+class AbstractLimiter(object):
 
-    def insert(self, *args, **kwargs):
-        raise NotImplementedError
-
-    def insert_if_under(self, *args, **kwargs):
+    def __init__(self, *args, **kwargs):
         raise NotImplementedError
 
     def get_key(self, actor):
-        return ''.join([self.key_prefix, actor])
+        return ':'.join(['rratelimit', self.action, actor])
 
-basepath = os.path.abspath(os.path.dirname(__file__))
-def load_templates(dirname):
-    def load_file(*paths):
-        path = os.path.join(basepath, dirname, *paths)
-        return open(path).read()
-    templates = {}
-    templates['check'] = load_file('check.lua')
-    templates['insert'] = load_file('insert.lua')
-    templates['insert_if_under'] = load_file('insert_if_under.lua')
-    return templates
+    def alert(self, *args, **kwargs):
+        raise NotImplementedError
+
+    def exceeded(self, *args, **kwargs):
+        raise NotImplementedError
+
+    def clear(self, *args, **kwargs):
+        raise NotImplementedError
+
+class LuaLimiter(AbstractLimiter):
+
+    def __setattr__(self, name, value):
+        if name == 'redis':
+            self.check_ver(value)
+            self.register_all(value)
+        super(LuaLimiter, self).__setattr__(name, value)
+
+    def register_script(self, redis, scriptname):
+        """Register script located at ./lua/<scriptname>.lua"""
+        path = os.path.join(basepath, 'lua', scriptname+'.lua')
+        return redis.register_script(open(path).read())
+
+    def register_all(self, *args, **kwargs):
+        """Registers all lua scripts on redis instance'
+           Must be overridden by child."""
+        raise NotImplementedError
+
+    def check_ver(self, redis):
+        def versiontuple(v):
+            return tuple(map(int, (v.split("."))))
+        version = redis.info()['redis_version']
+        if versiontuple(version) < versiontuple("2.6.0"):
+            raise UnsupportedRedisVersion(version)
+
+class PythonLimiter(AbstractLimiter):
+    pass
+
+def dtime(timestamp, slots, period):
+    """ Discrete time
+
+    Takes time and converts into into
+    discrete cyclical blocks."""
+    return int(timestamp/period)%slots

@@ -1,62 +1,82 @@
-import unittest
 import time
 
 import redis
+from nose.tools import raises
 
-class LimiterBase(unittest.TestCase):
+from rratelimit.exceptions import UnsupportedRedisVersion
 
-    def __init__( self, *args, **kwargs ):
-        super(LimiterBase, self).__init__(*args, **kwargs)
+class LimiterTestBase(object):
 
-        self.action = 'test_action'
+    def __init__(self, limiter_class, **kwargs):
+        self.action = 'action'
         self.limit = 10
         self.period = 0.25
-        self.redis_instance = redis.StrictRedis(host='localhost', port=6379)
 
-        if self.__class__ != LimiterBase:
-            self.run = unittest.TestCase.run.__get__(self, self.__class__)
-        else:
-          self.run = lambda self, *args, **kwargs: None
+        r = redis.StrictRedis(host='localhost', port=6379)
+        self.redis = r
+        self.limiter = limiter_class(r, self.action, self.limit, self.period,
+                                     **kwargs)
 
     def tearDown(self):
-        self.redis_instance.delete('rratelimit:{}:test'.format(self.action))
-        self.redis_instance.delete('rratelimit:{}:test:0'.format(self.action))
-        self.redis_instance.delete('rratelimit:{}:test:1'.format(self.action))
-        self.redis_instance.delete('rratelimit:{}:test:2'.format(self.action))
-    
+        self.limiter.clear('test')
+
+    def test_get_key(self):
+        assert self.limiter.get_key('test') == 'rratelimit:action:test'
+
+    def test_clear(self):
+        for r in range(self.limit*2):
+            self.limiter.insert('test')
+        self.limiter.clear('test')
+        assert not self.limiter.check('test')
+
     def test_unlimited(self):
-        """Test that check returns False when the limit is not exceeded"""
+        "Test that check returns False when the limit is not exceeded"
         for r in range(self.limit-1):
             self.limiter.insert('test')
-        self.assertFalse(self.limiter.check('test'))
+        assert not self.limiter.check('test')
 
     def test_limited(self):
-        """Test that check returns True when the limit is exceeded"""
+        "Test that check returns True when the limit is exceeded"
         for r in range(self.limit):
             self.limiter.insert('test')
-        self.assertTrue(self.limiter.check('test'))
+        assert self.limiter.check('test')
 
     def test_expires(self):
-        """Test that insertions expire after per time has elapsed"""
+        "Test that insertions expire after `per` time has elapsed"
         for r in range(self.limit):
             self.limiter.insert('test')
-        self.assertTrue(self.limiter.check('test'))
+        assert self.limiter.check('test')
         time.sleep(self.period)
-        self.assertFalse(self.limiter.check('test'))
+        assert not self.limiter.check('test')
 
     def test_exact(self):
         for r in range(self.limit-1):
             self.limiter.insert('test')
         # kinda racy, should be fine as long as next 4
-        # opperations take less than 0.1s...
-        self.assertFalse(self.limiter.check('test'))
+        # operations take less than 0.01s...
+        assert not self.limiter.check('test')
         time.sleep(self.period-0.1)
         self.limiter.insert('test')
-        self.assertTrue(self.limiter.check('test'))
+        assert self.limiter.check('test')
         time.sleep(0.1)
-        self.assertFalse(self.limiter.check('test'))
+        assert not self.limiter.check('test')
 
-    def test_insert_if_under(self):
+    def test_pipeline(self):
+        p = self.redis.pipeline()
         for r in range(self.limit):
-            self.assertTrue(self.limiter.insert_if_under('test'))
-        self.assertFalse(self.limiter.insert_if_under('test'))
+            self.limiter.insert('test', p)
+        self.limiter.check('test', p)
+        assert p.execute()[-1]
+
+    @raises(UnsupportedRedisVersion)
+    def test_invalid_version(self):
+        class Redismock(object):
+            def info(self):
+                return {'redis_version': '2.4.0'}
+        mock = Redismock()
+        self.limiter.check_ver(mock)
+
+    def test_checked_insert(self):
+        for r in range(self.limit):
+            assert self.limiter.checked_insert('test')
+        assert not self.limiter.checked_insert('test')
