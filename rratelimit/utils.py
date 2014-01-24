@@ -4,6 +4,7 @@ from .exceptions import UnsupportedRedisVersion
 
 basepath = os.path.abspath(os.path.dirname(__file__))
 
+
 class AbstractLimiter(object):
 
     def __init__(self, *args, **kwargs):
@@ -20,6 +21,7 @@ class AbstractLimiter(object):
 
     def clear(self, *args, **kwargs):
         raise NotImplementedError
+
 
 class LuaLimiter(AbstractLimiter):
 
@@ -46,12 +48,10 @@ class LuaLimiter(AbstractLimiter):
         if versiontuple(version) < versiontuple("2.6.0"):
             raise UnsupportedRedisVersion(version)
 
-class PythonLimiter(AbstractLimiter):
-    pass
 
 def dtime(timestamp, slots, period):
-    """ Discrete time
+    """ Discrete time.
 
     Takes time and converts into into
     discrete cyclical blocks."""
-    return int(timestamp/period)%slots
+    return int(timestamp / period) % slots

@@ -2,7 +2,9 @@ import time
 
 from .utils import LuaLimiter, dtime
 
+
 class ListLimiter(LuaLimiter):
+
     def __init__(self, redis, action, limit, period):
         self.redis = redis
         self.action = action
@@ -20,26 +22,28 @@ class ListLimiter(LuaLimiter):
 
     def insert(self, actor, client=None):
         self._insert(
-            keys=[self.get_key(actor),],
+            keys=[self.get_key(actor), ],
             args=[time.time(), self.period],
-            client=client,
+            client=client
         )
 
     def check(self, actor, client=None):
         return bool(self._check(
-            keys=[self.get_key(actor),],
+            keys=[self.get_key(actor), ],
             args=[time.time(), self.period, self.limit],
-            client=client,
+            client=client
         ))
 
     def checked_insert(self, actor, client=None):
         return bool(self._checked_insert(
-            keys=[self.get_key(actor),],
+            keys=[self.get_key(actor), ],
             args=[time.time(), self.period, self.limit],
             client=client,
         ))
 
+
 class HashLimiter(LuaLimiter):
+
     def __init__(self, redis, action, limit, period, accuracy):
         self.redis = redis
         self.action = action
@@ -63,33 +67,35 @@ class HashLimiter(LuaLimiter):
 
     def insert(self, actor, client=None):
         self._insert(
-            keys=[self.get_key(actor),],
+            keys=[self.get_key(actor), ],
             args=[
                 self.current_bucket(),
                 self.total_buckets,
-                self.period,],
-            client=client,
+                self.period],
+            client=client
         )
 
     def check(self, actor, client=None):
         return bool(self._check(
-            keys=[self.get_key(actor),],
+            keys=[self.get_key(actor), ],
             args=[self.current_bucket(), self.total_buckets, self.limit],
-            client=client,
+            client=client
         ))
 
     def checked_insert(self, actor, client=None):
         return bool(self._checked_insert(
-            keys=[self.get_key(actor),],
+            keys=[self.get_key(actor), ],
             args=[
                 self.current_bucket(),
                 self.total_buckets,
                 self.limit,
                 self.period],
-            client=client,
+            client=client
         ))
 
+
 class SimpleLimiter(LuaLimiter):
+
     def __init__(self, redis, action, limit, period):
         self.redis = redis
         self.action = action
@@ -103,9 +109,9 @@ class SimpleLimiter(LuaLimiter):
 
     def clear(self, actor):
         orig = super(SimpleLimiter, self).get_key(actor)
-        self.redis.delete(orig+":0")
-        self.redis.delete(orig+":1")
-        self.redis.delete(orig+":2")
+        self.redis.delete(orig + ":0")
+        self.redis.delete(orig + ":1")
+        self.redis.delete(orig + ":2")
 
     def register_all(self, redis):
         self._insert = self.register_script(redis, 'simple_insert')
@@ -115,21 +121,21 @@ class SimpleLimiter(LuaLimiter):
 
     def insert(self, actor, client=None):
         self._insert(
-            keys=[self.get_key(actor),],
-            args=[self.period,],
-            client=client,
+            keys=[self.get_key(actor), ],
+            args=[self.period, ],
+            client=client
         )
 
     def check(self, actor, client=None):
         return bool(self._check(
-            keys=[self.get_key(actor),],
-            args=[self.limit,],
-            client=client,
+            keys=[self.get_key(actor), ],
+            args=[self.limit, ],
+            client=client
         ))
 
     def checked_insert(self, actor, client=None):
         return bool(self._checked_insert(
-            keys=[self.get_key(actor),],
+            keys=[self.get_key(actor), ],
             args=[self.limit, self.period],
-            client=client,
+            client=client
         ))
