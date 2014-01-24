@@ -134,7 +134,6 @@ pipe.execute()
 
 ### TODO
 
-* Make python-version agnostic
 * Work on benchmarking
 
 ## Faq/Misc
