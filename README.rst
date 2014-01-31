@@ -8,17 +8,17 @@ Installation
 
 Install via pip
 
-::
+.. code:: shell
 
-    pip install rratelimit
+    $ pip install rratelimit
 
 Install from source
 
-::
+.. code:: shell
 
-    git clone git://github.com/HeyImAlex/rratelimit.git
-    cd rratelimit
-    python setup.py
+    $ git clone git://github.com/HeyImAlex/rratelimit.git
+    $ cd rratelimit
+    $ python setup.py
 
 **requires redis-server >= 2.6.0 to work properly**
 
@@ -36,19 +36,19 @@ Each limiter shares the same basic interface:
 -  constructor params
 
    -  **redis** - redis-py Redis or StrictRedis instance
-   -  **action**(string) - Name for the action this limiter will limit
-   -  **limit**(int) - Inclusive number of times you'd like ``action``
+   -  **action** (string) - Name for the action this limiter will limit
+   -  **limit** (int) - Inclusive number of times you'd like ``action``
       to be able to be executed per ``period`` seconds
-   -  **period**(double) - Time window (seconds) in which you want to
+   -  **period** (double) - Time window (in seconds) in which you want to
       limit ``action``. Reliable down to milliseconds (0.001).
 
 -  methods
 
-   -  **check**(``actor``): Return whether ``actor`` is over the limit
+   -  **check** (``actor``): Return whether ``actor`` is over the limit
       for this action.
-   -  **insert**(``actor``): Let the limiter know that ``actor`` has
+   -  **insert** (``actor``): Let the limiter know that ``actor`` has
       just completed this action.
-   -  **checked\_insert**(``actor``): Convenience method for atomically
+   -  **checked\_insert** (``actor``): Convenience method for atomically
       checking if an actor is over the limit and, if they're not,
       running the insert method. Returns True if the insert suceeded,
       False if the user was over the limit.
@@ -67,8 +67,7 @@ proper parameters. In this case the ``action`` would be something like
 ``"new_thread"``, the ``limit`` would be ``1``, and the ``period`` would
 be ``5*60``.
 
-::
-
+.. code:: python
 
     from redis import StrictRedis
     from rratelimit import Limiter
@@ -76,13 +75,12 @@ be ``5*60``.
     r = StrictRedis(...)
     thread_limiter = Limiter(r, action='new_thread', limit=1, period=5*60)
 
-Now in your view function all you need to do is call 'checked\_insert'
+Now in your view function all you need to do is call ``checked_insert``
 whenever a user attempts to create a new thread. If it returns True, you
 know that the user was not over the limit and you can proceed to create
 the thread.
 
-::
-
+.. code:: python
 
     @app.route('/new_thread', methods=['GET', 'POST'])
     def new_thread():
@@ -97,7 +95,7 @@ the thread.
 Boom.
 
 Classes
--------
+~~~~~~~
 
 Internally rratelimit has a few different Limiter classes. The default
 (and the one that's created when you call Limiter) is the ListLimiter,
@@ -110,7 +108,7 @@ these limiters along with details of their implementations and their
 respective pros and cons.
 
 ListBasedLimiter
-~~~~~~~~~~~~~~~~
+----------------
 
 -  **pros** - simple, very accurate, O(1) insert time, generally O(1)
    check time
@@ -137,7 +135,7 @@ check, the list will never be trimmed. This trade off is made to
 maintain O(1) insert time.
 
 HashBasedLimiter
-~~~~~~~~~~~~~~~~
+----------------
 
 -  **pros** - O(1) inserts, checks, and memory usage
 -  **cons** - complicated, inherently inaccurate, constant big-O
@@ -170,7 +168,7 @@ suited for your usecase. If you *really* don't need great accuracy, the
 SimpleLimiter is likely a better match.
 
 SimpleLimiter
-~~~~~~~~~~~~~
+-------------
 
 -  **pros** - very low memory footprint (at most 2 keys per actor), very
    fast, very simple, good enough for many situations
@@ -191,7 +189,7 @@ limiting is commonly found on web APIs (Twitter) and is might be better
 handled by your web server, but hey, it's here if you need it.
 
 Race conditions
----------------
+~~~~~~~~~~~~~~~
 
 Sometimes you may want to chain multiple inserts or checks in an atomic
 way. Using locks is cumbersome and comes with overhead, so rratelimit
@@ -200,7 +198,7 @@ provides an alternative through redis-py's pipelines.
 Just create a pipeline and then call the limiter method you want with
 the pipeline object as the second parameter.
 
-::
+.. code:: python
 
     r = redis.Redis(...)
     my_limiter = Limiter(...)
@@ -223,7 +221,7 @@ TODO
 -  Work on benchmarking
 
 Faq/Misc
---------
+~~~~~~~~
 
 -  Huge thanks to /u/iminurnamez for coming up with checked\_insert as
    the name for checked\_insert. Naming things is tough...
