@@ -20,5 +20,7 @@ setup(name='rratelimit',
       zip_safe=False,
       test_suite = 'nose.collector',
       tests_require = ['nose>=1.0', 'redis'],
-      data_files = [('rratelimit/lua/', glob.glob('rratelimit/lua/*.lua'))]
+      #package_data = {'rratelimit': glob.glob("rratelimit/lua/*.lua")},
+      include_package_data=True
+      
     )
