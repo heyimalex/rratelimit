@@ -1,5 +1,6 @@
 from setuptools import setup
 import multiprocessing
+import glob
 
 setup(name='rratelimit',
       version='0.0.3',
@@ -18,5 +19,6 @@ setup(name='rratelimit',
       packages=['rratelimit'],
       zip_safe=False,
       test_suite = 'nose.collector',
-      tests_require = ['nose>=1.0', 'redis']
+      tests_require = ['nose>=1.0', 'redis'],
+      data_files = [('rratelimit/lua/', glob.glob('rratelimit/lua/*.lua'))]
     )
