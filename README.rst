@@ -18,7 +18,7 @@ Install from source
 
     git clone git://github.com/HeyImAlex/rratelimit.git
     cd rratelimit
-    python setup.py
+    python setup.py install
 
 **requires redis-server >= 2.6.0 to work properly**
 
