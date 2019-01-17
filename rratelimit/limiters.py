@@ -14,6 +14,7 @@ class ListLimiter(LuaLimiter):
     def register_all(self, redis):
         self._insert = self.register_script(redis, 'list_insert')
         self._check = self.register_script(redis, 'list_check')
+        self._check_ex = self.register_script(redis, 'list_check_ex')
         self._checked_insert = self.register_script(redis,
                                                     'list_checked_insert')
 
@@ -31,6 +32,15 @@ class ListLimiter(LuaLimiter):
         return bool(self._check(
             keys=[self.get_key(actor), ],
             args=[time.time(), self.period, self.limit],
+            client=client
+        ))
+
+    def check_ex(self, actor, limit, period, client=None):
+        if period > self.period or limit > self.limit:
+            raise ValueError('Cannot check with higher limit or period')
+        return bool(self._check_ex(
+            keys=[self.get_key(actor), ],
+            args=[time.time(), period, limit],
             client=client
         ))
 

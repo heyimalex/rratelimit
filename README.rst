@@ -45,6 +45,7 @@ Each limiter shares the same basic interface:
    -  **check** (``actor``): Return whether ``actor`` is over the limit for this action.
    -  **insert** (``actor``): Let the limiter know that ``actor`` has just completed this action.
    -  **checked\_insert** (``actor``): Convenience method for atomically checking if an actor is over the limit and, if they're not, running the insert method. Returns True if the insert suceeded, False if the user was over the limit.
+   -  **check_ex** (``actor``, ``limit``, ``period``): (Only for ``ListLimiter``) Like ``check`` but can be called with lower limit or period (e.g for a 10/h limit, you can check also for 5/15m or 2/m limits).
 
 Every method is atomic and thread safe. Internally rratelimit uses Lua scripts with redis' EVALSHA command for the bulk of the work, so it's fairly fast as well.
 
@@ -89,7 +90,7 @@ However, in the name of completeness I've included a few more limiters (with per
 ListBasedLimiter
 ----------------
 
--  **pros** - simple, very accurate, O(1) insert time, generally O(1) check time
+-  **pros** - simple, very accurate, O(1) insert time, generally O(1) check time. Also a `check_ex` method exists to check for lower limits.
 -  **cons** - potentially O(N) check time, memory usage, where N is the number of insertions made (over a certain threshold), could eat up a lot of memory with very large ``limit`` values or many inserts
 
 The ListBasedLimiter works by LPUSHing a timestamp onto a list every time insert is called. It checks the limit by calling ``LINDEX {limit}`` and seeing if the returned value is greater than ``current_timestamp - period``. Check also LTRIMs all items past ``limit``, ensuring that after a check the list is at most ``limit`` keys long. Expiration is handled by setting a ttl equal to ``period`` on insert.
