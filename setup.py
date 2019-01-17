@@ -4,7 +4,7 @@ import glob
 
 setup(
     name='rratelimit',
-    version='0.0.4',
+    version='0.0.5',
     description='Rate limiting classes for redis and redis-py',
     url='http://github.com/HeyImAlex/rratelimit',
     author='Alex Guerra',
